@@ -44,3 +44,5 @@ const Chat: React.FC<ChatProps> = ({ room }) => {
         </div>
       );
     };
+
+export default Chat;
