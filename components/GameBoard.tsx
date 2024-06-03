@@ -1,33 +1,35 @@
-import { useState } from "react";
-import { calculateWinner } from "@/utils/gameLogic";
+import { useState } from 'react';
+import { calculateWinner } from '../utils/gameLogic';
 
-
+// GameBoard component
 const GameBoard: React.FC = () => {
-    const [squares, setSquares] = useState<string[]>(Array(9).fill(null));
-    const [xIsNext, setXIsNext] = useState<boolean>(true);
+  const [squares, setSquares] = useState<string[]>(Array(9).fill(null));
+  const [xIsNext, setXIsNext] = useState<boolean>(true);
 
-
-    const handleClick = (i: number): void => {
-        const newSquares = squares.slice();
-        if (calculateWinner(newSquares) || newSquares[i]) {
-            return;
-        }
-        newSquares[i] = xIsNext ? "X" : "O";
-        setSquares(newSquares);
-        setXIsNext(!xIsNext);
-    };
-
-    const renderSquare = (i: number): JSX.Element => {
-        return (
-            <button className="square" onClick={() => handleClick(i)}>
-                {squares[i]}
-            </button>
-        );
-    };
-
-    const winner = calculateWinner(squares);
-  const status = winner ? `Winner: ${winner}` : `Next player: ${xIsNext ? 'X' : 'O'}`;
-
+  const handleClick = (i: number): void => {
+    const newSquares = squares.slice();
+    if (calculateWinner(newSquares) || newSquares[i]) {
+      return;
+    }
+    newSquares[i] = xIsNext ? 'X' : 'O';
+    setSquares(newSquares);
+    setXIsNext(!xIsNext);
+  };
+  // Render a square
+  const renderSquare = (i: number): JSX.Element => (
+    <button className="square" onClick={() => handleClick(i)}>
+      {squares[i]}
+    </button>
+  );
+  // Check for a winner
+  const winner = calculateWinner(squares);
+  let status;
+  if (winner) {
+    status = winner === 'Tie' ? "It's a Tie!" : `Winner: ${winner}`;
+  } else {
+    status = `Next player: ${xIsNext ? 'X' : 'O'}`;
+  }
+  // Render the game board
   return (
     <div>
       <div className="status">{status}</div>
@@ -45,4 +47,3 @@ const GameBoard: React.FC = () => {
 };
 
 export default GameBoard;
-   

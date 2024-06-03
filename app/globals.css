@@ -11,6 +11,33 @@ body {
   text-align: center;
 }
 
+.square {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  border: 1px solid black;
+}
+
+.status {
+  margin-bottom: 10px;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.board-row {
+  display: flex;
+}
+
+.chat-box {
+  border: 1px solid black;
+  height: 200px;
+  overflow-y: scroll;
+  margin-bottom: 10px;
+}
+
 button {
   margin: 10px;
   padding: 10px 20px;
@@ -22,4 +49,4 @@ input {
   margin: 10px;
   padding: 10px;
   font-size: 16px;
-}
+} 
