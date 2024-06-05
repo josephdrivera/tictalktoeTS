@@ -10,6 +10,7 @@ export const calculateWinner = (squares: string[]): string | null => {
       [0, 4, 8],
       [2, 4, 6],
     ]; // All possible winning lines
+    // Check if any of the winning lines have the same value
     for (let i = 0; i < lines.length; i++) {
       const [a, b, c] = lines[i];
       if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {

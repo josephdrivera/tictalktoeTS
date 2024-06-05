@@ -1,48 +1,53 @@
-import { useState, useEffect } from "react";
-import io, { Socket } from "socket.io-client";
+import { useState, useEffect } from 'react';
+import io, { Socket } from 'socket.io-client';
 
 interface ChatProps {
     room: string;
 }
 
 const Chat: React.FC<ChatProps> = ({ room }) => {
-    const [messages, setMessages] = useState<string[]>([]);// Store the messages
-    const [input, setInput] = useState<string>("");// Store the input
-    const  socket = io();// Create a socket
+    const [messages, setMessages] = useState<string[]>([]);
+    const [input, setInput] = useState<string>('');
+    const [socket, setSocket] = useState<Socket | null>(null);
 
     useEffect(() => {
-        socket.emit("join", room);// Join the room
+        const newSocket = io('http://localhost:3000');
+        setSocket(newSocket);
 
-        socket.on("message", (message: string) => {
-            setMessages((prevMessages) => [...prevMessages, message]);// Add the message to the messages
+        newSocket.emit('join', room);
+
+        newSocket.on('message', (message: string) => {
+            setMessages((prevMessages) => [...prevMessages, message]);
         });
 
         return () => {
-            socket.disconnect();// Disconnect from the socket
+            newSocket.disconnect();
         };
-    }
-    , [room]);// Run this effect when the room changes
+    }, [room]);
 
-    const sendMessage = (): void =>{
-        socket.emit("sendMessage", input);// Send the message
-        setInput("");// Clear the input
+    const sendMessage = () => {
+        if (socket) {
+            socket.emit('sendMessage', input);
+            setInput('');
+        }
     };
 
     return (
         <div>
-          <div className="chat-box">
-            {messages.map((msg, index) => (
-              <div key={index}>{msg}</div>
-            ))}
-          </div>
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
-          <button onClick={sendMessage}>Send</button>
+            <div className="chat-box">
+                {messages.map((msg, index) => (
+                    <div key={index}>{msg}</div>
+                ))}
+            </div>
+            <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Enter your message"
+            />
+            <button onClick={sendMessage}>Send</button>
         </div>
-      );
-    };
+    );
+};
 
 export default Chat;
