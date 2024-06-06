@@ -11,7 +11,7 @@ const Chat: React.FC<ChatProps> = ({ room }) => {
     const [socket, setSocket] = useState<Socket | null>(null);
 
     useEffect(() => {
-        const newSocket = io('http://localhost:3000');
+        const newSocket = io('http://localhost:3000', { transports: ['websocket', 'polling', 'flashsocket'] });
         setSocket(newSocket);
 
         newSocket.emit('join', room);
