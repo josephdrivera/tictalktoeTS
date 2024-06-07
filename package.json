@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "node server/server.js"
   },
   "dependencies": {
     "@types/socket.io-client": "^3.0.0",
