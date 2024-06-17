@@ -20,18 +20,25 @@ app.prepare().then(() => {
   const gameState = {};
 
   io.on('connection', (socket) => {
-    console.log('New client connected');
+    console.log('New client connected', socket.id);
 
     socket.on('join', (room) => {
       socket.join(room);
-      console.log(`Client joined room: ${room}`);
+      console.log(`Client ${socket.id} joined room: ${room}`);
+
       if (!gameState[room]) {
         gameState[room] = {
           board: Array(9).fill(null),
           xIsNext: true,
           messages: [],
+          players: [],
         };
       }
+
+      if (gameState[room].players.length < 2) {
+        gameState[room].players.push(socket.id);
+      }
+
       io.to(room).emit('updateGameState', gameState[room]);
     });
 
@@ -46,16 +53,25 @@ app.prepare().then(() => {
 
     socket.on('makeMove', ({ index, room }) => {
       const currentGameState = gameState[room];
+      const currentPlayer = socket.id;
+      const currentPlayerIndex = currentGameState.xIsNext ? 0 : 1;
+
+      if (currentGameState.players[currentPlayerIndex] !== currentPlayer) {
+        return;
+      }
+
       if (currentGameState.board[index] || calculateWinner(currentGameState.board)) {
         return;
       }
+
       currentGameState.board[index] = currentGameState.xIsNext ? 'X' : 'O';
       currentGameState.xIsNext = !currentGameState.xIsNext;
+
       io.to(room).emit('updateGameState', currentGameState);
     });
 
     socket.on('disconnect', () => {
-      console.log('Client disconnected');
+      console.log('Client disconnected', socket.id);
     });
   });
 

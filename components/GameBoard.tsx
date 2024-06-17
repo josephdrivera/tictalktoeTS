@@ -9,16 +9,30 @@ const GameBoard: React.FC<GameBoardProps> = ({ room }) => {
     const [squares, setSquares] = useState<string[]>(Array(9).fill(null));
     const [xIsNext, setXIsNext] = useState<boolean>(true);
     const [socket, setSocket] = useState<Socket | null>(null);
+    const [playerId, setPlayerId] = useState<string | null>(null);
+    const [isPlayerTurn, setIsPlayerTurn] = useState<boolean>(true);
 
     useEffect(() => {
         const newSocket = io('http://localhost:3000', { transports: ['websocket', 'polling', 'flashsocket'] });
         setSocket(newSocket);
 
+
         newSocket.emit('join', room);
+
+
+        newSocket.on('connect', () => {
+            console.log('connected');
+            setPlayerId(newSocket.id);
+            console.log('player id', newSocket.id);
+        });
+
 
         newSocket.on('updateGameState', (gameState) => {
             setSquares(gameState.board);
             setXIsNext(gameState.xIsNext);
+
+            const currentPlayerIndex = gameState.xIsNext ? 0 : 1;
+            setIsPlayerTurn(gameState.players[currentPlayerIndex] === newSocket.id);
         });
 
         return () => {
@@ -27,13 +41,13 @@ const GameBoard: React.FC<GameBoardProps> = ({ room }) => {
     }, [room]);
 
     const handleClick = (i: number): void => {
-        if (socket) {
+        if (socket && isPlayerTurn && !squares[i]) {
             socket.emit('makeMove', { index: i, room });
         }
     };
 
     const renderSquare = (i: number): JSX.Element => (
-        <button className="square" onClick={() => handleClick(i)}>
+        <button className="square" onClick={() => handleClick(i)} disabled={!isPlayerTurn}>
             {squares[i]}
         </button>
     );
@@ -42,6 +56,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ room }) => {
     let status;
     if (winner) {
         status = `Winner: ${winner}`;
+    } else if (!isPlayerTurn) {
+        status = "Waiting for opponent's move";
     } else {
         status = `Next player: ${xIsNext ? 'X' : 'O'}`;
     }
@@ -80,6 +96,14 @@ const calculateWinner = (squares: string[]): string | null => {
         if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
             return squares[a];
         }
+        if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+            return squares[a];
+        }
+        if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+            return squares[a];
+        }
     }
+
     return null;
 };
+
