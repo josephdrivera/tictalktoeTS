@@ -1,109 +1,118 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import io, { Socket } from 'socket.io-client';
 
 interface GameBoardProps {
     room: string;
 }
 
+interface GameState {
+    board: (string | null)[];
+    xIsNext: boolean;
+    players: string[];
+    winner: string | null;
+}
+
 const GameBoard: React.FC<GameBoardProps> = ({ room }) => {
-    const [squares, setSquares] = useState<string[]>(Array(9).fill(null));
-    const [xIsNext, setXIsNext] = useState<boolean>(true);
+    const [gameState, setGameState] = useState<GameState>({
+        board: Array(9).fill(null),
+        xIsNext: true,
+        players: [],
+        winner: null
+    });
     const [socket, setSocket] = useState<Socket | null>(null);
     const [playerId, setPlayerId] = useState<string | null>(null);
-    const [isPlayerTurn, setIsPlayerTurn] = useState<boolean>(true);
 
     useEffect(() => {
-        const newSocket = io('http://localhost:3000', { transports: ['websocket', 'polling', 'flashsocket'] });
+        console.log('Connecting to socket...');
+        const newSocket = io('http://localhost:3001', {
+            transports: ['websocket'],
+            upgrade: false
+        });
         setSocket(newSocket);
 
-
-        newSocket.emit('join', room);
-
-
         newSocket.on('connect', () => {
-            console.log('connected');
+            console.log('Connected to server. Socket ID:', newSocket.id);
             setPlayerId(newSocket.id);
-            console.log('player id', newSocket.id);
+            newSocket.emit('join', room);
         });
 
+        newSocket.on('updateGameState', (newGameState: GameState) => {
+            console.log('Received updated game state:', newGameState);
+            setGameState(newGameState);
+        });
 
-        newSocket.on('updateGameState', (gameState) => {
-            setSquares(gameState.board);
-            setXIsNext(gameState.xIsNext);
-
-            const currentPlayerIndex = gameState.xIsNext ? 0 : 1;
-            setIsPlayerTurn(gameState.players[currentPlayerIndex] === newSocket.id);
+        newSocket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
         });
 
         return () => {
+            console.log('Disconnecting socket...');
             newSocket.disconnect();
         };
     }, [room]);
 
-    const handleClick = (i: number): void => {
-        if (socket && isPlayerTurn && !squares[i]) {
-            socket.emit('makeMove', { index: i, room });
+    const handleClick = (index: number) => {
+        console.log('Clicked square:', index);
+        console.log('Current game state:', gameState);
+        console.log('Is player turn:', isPlayerTurn());
+        if (socket && isPlayerTurn() && !gameState.board[index] && !gameState.winner) {
+            console.log('Emitting makeMove event');
+            socket.emit('makeMove', { index, room });
+        } else {
+            console.log('Move not allowed');
         }
     };
 
-    const renderSquare = (i: number): JSX.Element => (
-        <button className="square" onClick={() => handleClick(i)} disabled={!isPlayerTurn}>
-            {squares[i]}
-        </button>
-    );
+    const isPlayerTurn = (): boolean => {
+        const currentPlayerIndex = gameState.xIsNext ? 0 : 1;
+        return gameState.players[currentPlayerIndex] === playerId;
+    };
 
-    const winner = calculateWinner(squares);
-    let status;
-    if (winner) {
-        status = `Winner: ${winner}`;
-    } else if (!isPlayerTurn) {
-        status = "Waiting for opponent's move";
-    } else {
-        status = `Next player: ${xIsNext ? 'X' : 'O'}`;
-    }
+    const renderSquare = (index: number) => {
+        const value = gameState.board[index];
+        const display = value === 'X' ? '❌' : value === 'O' ? '⭕' : null;
+        return (
+            <button
+                key={index}
+                className="w-20 h-20 bg-white border border-gray-300 text-4xl font-bold flex items-center justify-center"
+                onClick={() => handleClick(index)}
+                disabled={!isPlayerTurn() || !!gameState.winner}
+            >
+                {display}
+            </button>
+        );
+    };
+
+    const getStatus = (): string => {
+        if (gameState.winner) {
+            return gameState.winner === 'Tie' ? "It's a tie!" : `Winner: ${gameState.winner === 'X' ? '❌' : '⭕'}`;
+        } else if (gameState.players.length < 2) {
+            return "Waiting for opponent to join...";
+        } else if (!isPlayerTurn()) {
+            return "Waiting for opponent's move";
+        } else {
+            return `Your turn (${gameState.xIsNext ? '❌' : '⭕'})`;
+        }
+    };
 
     return (
-        <div>
-            <div className="status">{status}</div>
-            <div className="board-row">
-                {renderSquare(0)}{renderSquare(1)}{renderSquare(2)}
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+            <h2 className="text-2xl font-bold mb-4">Game Room: {room}</h2>
+            <div className="mb-4 text-xl font-semibold">{getStatus()}</div>
+            <div className="grid grid-cols-3 gap-2 mb-4">
+                {[0, 1, 2].map(row => (
+                    <div key={`row-${row}`} className="flex">
+                        {[0, 1, 2].map(col => renderSquare(row * 3 + col))}
+                    </div>
+                ))}
             </div>
-            <div className="board-row">
-                {renderSquare(3)}{renderSquare(4)}{renderSquare(5)}
-            </div>
-            <div className="board-row">
-                {renderSquare(6)}{renderSquare(7)}{renderSquare(8)}
+            <div className="mt-4 text-sm">
+                <p>Your player ID: {playerId}</p>
+                <p>Players in game: {gameState.players.join(', ')}</p>
+                <p>Is your turn: {isPlayerTurn() ? 'Yes' : 'No'}</p>
             </div>
         </div>
     );
 };
 
 export default GameBoard;
-
-const calculateWinner = (squares: string[]): string | null => {
-    const lines = [
-        [0, 1, 2],
-        [3, 4, 5],
-        [6, 7, 8],
-        [0, 3, 6],
-        [1, 4, 7],
-        [2, 5, 8],
-        [0, 4, 8],
-        [2, 4, 6],
-    ];
-    for (let i = 0; i < lines.length; i++) {
-        const [a, b, c] = lines[i];
-        if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-            return squares[a];
-        }
-        if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-            return squares[a];
-        }
-        if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-            return squares[a];
-        }
-    }
-
-    return null;
-};
-
