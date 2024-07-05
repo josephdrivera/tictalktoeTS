@@ -32,7 +32,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ room }) => {
 
         newSocket.on('connect', () => {
             console.log('Connected to server. Socket ID:', newSocket.id);
-            setPlayerId(newSocket.id);
+            // @ts-ignore
+            setPlayerId(newSocket.id); // TODO: Fix this
             newSocket.emit('join', room);
         });
 
